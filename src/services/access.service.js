@@ -52,10 +52,6 @@ class AccessService {
 
       if (!keyStore) {
         throw new BadRequestError("Error: keyStore error");
-        return {
-          code: "xxxx",
-          message: "keyStore error",
-        };
       }
 
       // created token pair
