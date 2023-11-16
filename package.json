@@ -7,6 +7,10 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node --watch server.js"
   },
+  "_moduleAliases": {
+    "~": "src",
+    "~customSRC": "src/customSRC"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -17,6 +21,7 @@
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
+    "module-alias": "^2.2.3",
     "mongoose": "^8.0.0"
   },
   "devDependencies": {
