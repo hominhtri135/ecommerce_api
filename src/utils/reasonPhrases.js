@@ -1,3 +1,4 @@
 module.exports = {
-  UNAUTHORIZED: "unauthenticated",
+  UNAUTHORIZED: "Unauthenticated",
+  NOT_FOUND: "Not Found",
 };
