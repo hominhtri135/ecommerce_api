@@ -26,7 +26,19 @@ POST {{url_dev}}/shop/logout
 Content-Type: application/json
 x-api-key: a004bd87da0008d493422b07fcc4e8859c9320b3fb8bdc2f8590c36810e56741bd86244fcbd4500ba5b102a04a64297fe42eaaf0ff668d25cab17ad4fef50e1c
 x-client-id: 6554d18e684fce1e4f214421
-authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NTU0ZDE4ZTY4NGZjZTFlNGYyMTQ0MjEiLCJlbWFpbCI6InNob3B0aXBqczNAZ21haWwuY29tIiwiaWF0IjoxNzAwMTA4ODYxLCJleHAiOjE3MDAyODE2NjF9.AiEg4Gw0oOfvUWoXaGcipaqrea_JpC6AldmIJr87q1c
+authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NTU0ZDE4ZTY4NGZjZTFlNGYyMTQ0MjEiLCJlbWFpbCI6InNob3B0aXBqczNAZ21haWwuY29tIiwiaWF0IjoxNzAwMTEyNzI1LCJleHAiOjE3MDAyODU1MjV9.n5iuFWYKgJmltN-JYMIBAdZieAhwLNbyAYLbxCx5A9Y
+
+{
+    "email": "shoptipjs3@gmail.com",
+    "password": "abc123"
+}
+
+### handlerRefreshToken
+POST {{url_dev}}/shop/handlerRefreshToken
+Content-Type: application/json
+x-api-key: a004bd87da0008d493422b07fcc4e8859c9320b3fb8bdc2f8590c36810e56741bd86244fcbd4500ba5b102a04a64297fe42eaaf0ff668d25cab17ad4fef50e1c
+x-client-id: 6554d18e684fce1e4f214421
+authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NTU0ZDE4ZTY4NGZjZTFlNGYyMTQ0MjEiLCJlbWFpbCI6InNob3B0aXBqczNAZ21haWwuY29tIiwiaWF0IjoxNzAwMTEyNzI1LCJleHAiOjE3MDAyODU1MjV9.n5iuFWYKgJmltN-JYMIBAdZieAhwLNbyAYLbxCx5A9Y
 
 {
     "email": "shoptipjs3@gmail.com",
