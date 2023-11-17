@@ -4,6 +4,8 @@ const compression = require("compression");
 const express = require("express");
 const { default: helmet } = require("helmet");
 const morgan = require("morgan");
+const swaggerDoc = require("swagger-ui-express");
+const swaggerDoccumentation = require("~/helpers/documentation");
 const app = express();
 
 // console.log(`Process::`, process.env);
@@ -23,6 +25,10 @@ require("~/dbs/init.mongodb");
 // const { checkOverload } = require("./helpers/check.connect");
 // checkOverload();
 
+// Swagger Documentation API
+app.use("/documentations", swaggerDoc.serve);
+app.use("/documentations", swaggerDoc.setup(swaggerDoccumentation));
+
 // init routes
 app.use(require("~/routes"));
 
@@ -38,7 +44,7 @@ app.use((error, req, res, next) => {
   return res.status(statusCode).json({
     status: "error",
     code: statusCode,
-    stack: error.stack, // hien thi chi tiet loi o dau
+    // stack: error.stack, // hien thi chi tiet loi o dau
     message: error.message || "Internal Server Error",
   });
 });

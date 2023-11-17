@@ -22,7 +22,8 @@
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
     "module-alias": "^2.2.3",
-    "mongoose": "^8.0.0"
+    "mongoose": "^8.0.0",
+    "swagger-ui-express": "^5.0.0"
   },
   "devDependencies": {
     "app-root-path": "^3.1.0",

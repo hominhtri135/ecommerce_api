@@ -89,7 +89,7 @@ class AccessService {
     }
 
     // 2 - match password
-    const match = bcrypt.compare(password, foundShop.password);
+    const match = await bcrypt.compare(password, foundShop.password);
     if (!match) {
       throw new AuthFailureError("Authentication error");
     }

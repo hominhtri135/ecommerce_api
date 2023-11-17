@@ -69,7 +69,7 @@ const authentication = asyncHandler(async (req, res, next) => {
     }
   }
 
-  const accessToken = req.headers[HEADER.AUTHORIZATION];
+  const accessToken = req.headers[HEADER.AUTHORIZATION]?.replace("Bearer ", "");
   if (!accessToken) throw new AuthFailureError("Invalid Request");
 
   try {
