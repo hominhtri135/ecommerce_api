@@ -66,6 +66,22 @@ class ProductController {
     }).send(res);
   };
 
+  findAllProducts = async (req, res, next) => {
+    new SuccessResponse({
+      message: "Get Find All Products success",
+      metadata: await ProductFactory.findAllProducts(req.query),
+    }).send(res);
+  };
+
+  findProduct = async (req, res, next) => {
+    new SuccessResponse({
+      message: "Get Find Product success",
+      metadata: await ProductFactory.findProduct({
+        product_id: req.params.product_id,
+      }),
+    }).send(res);
+  };
+
   // END QUERY //
 }
 
