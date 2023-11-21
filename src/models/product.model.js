@@ -74,11 +74,25 @@ var productSchema = new Schema(
 // create index for search
 productSchema.index({ product_name: "text", product_description: "text" });
 
-// Document middleware: runs before .save() and .create()...
+// Document middleware: runs before .save() .create() .update()...
 productSchema.pre("save", function (next) {
   this.product_slug = slugify(this.product_name, { lower: true, locale: "vi" });
   next();
 });
+
+productSchema.pre(
+  ["updateOne", "findByIdAndUpdate", "findOneAndUpdate"],
+  async function (next) {
+    const data = this.getUpdate();
+    if (data.product_name) {
+      data.product_slug = slugify(data.product_name, {
+        lower: true,
+        locale: "vi",
+      });
+    }
+    next();
+  }
+);
 
 // define the product type= clothing
 const clothingSchema = new Schema(
