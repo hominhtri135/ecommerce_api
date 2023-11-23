@@ -26,15 +26,29 @@ require("~/dbs/init.mongodb");
 // checkOverload();
 
 // Swagger Documentation API
-app.use("/documentations", swaggerDoc.serve);
-app.use("/documentations", swaggerDoc.setup(swaggerDoccumentation));
+app.use(express.static(__dirname));
+app.use("*.css", (req, res, next) => {
+  res.set("Content-Type", "text/css");
+  next();
+});
+var options = {
+  explorer: true,
+  // customCssUrl: "/swagger/themes/theme-material.css",
+  // customCss: ".swagger-ui .topbar { display: none }",
+};
+
+app.use(
+  "/documentations",
+  swaggerDoc.serve,
+  swaggerDoc.setup(swaggerDoccumentation, options)
+);
 
 // init routes
 app.use(require("~/routes"));
 
 // handling errors
 app.use((req, res, next) => {
-  const error = new Error("Not Found");
+  const error = new Error(`Not Found - ${req.originalUrl}`);
   error.status = 404;
   next(error);
 });
@@ -44,7 +58,7 @@ app.use((error, req, res, next) => {
   return res.status(statusCode).json({
     status: "error",
     code: statusCode,
-    // stack: error.stack, // hien thi chi tiet loi o dau
+    stack: error.stack, // hien thi chi tiet loi o dau
     message: error.message || "Internal Server Error",
   });
 });
