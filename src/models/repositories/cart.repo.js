@@ -1,5 +1,6 @@
 "use strict";
 
+const { convertToObjectIdMongodb } = require("~/utils");
 const { cart } = require("../cart.model");
 
 const createUserCart = async ({ userId, product }) => {
@@ -29,7 +30,14 @@ const updateUserCartQuantity = async ({ userId, product }) => {
   return await cart.findOneAndUpdate(query, updateSet, options);
 };
 
+const findCartById = async ({ cartId }) => {
+  return await cart
+    .findOne({ _id: convertToObjectIdMongodb(cartId), cart_state: "active" })
+    .lean();
+};
+
 module.exports = {
   createUserCart,
   updateUserCartQuantity,
+  findCartById,
 };

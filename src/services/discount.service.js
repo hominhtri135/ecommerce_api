@@ -89,9 +89,7 @@ class DiscountService {
     userId,
     limit = 50,
     page = 1,
-    ...props
   }) {
-    console.log({ code, props });
     // create index for discount_code
     const foundDiscount = await checkDiscountExist({
       model: discount,
@@ -222,7 +220,7 @@ class DiscountService {
     return {
       totalOrder,
       discount: amount,
-      totolPrice: totalOrder - amount,
+      totalPrice: totalOrder - amount,
     };
   }
 
