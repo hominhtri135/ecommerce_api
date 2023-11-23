@@ -6,8 +6,11 @@ const {
   electronic,
   furniture,
 } = require("~/models/product.model");
-const { Types } = require("mongoose");
-const { getSelectData, getUnSelectData } = require("~/utils");
+const {
+  getSelectData,
+  getUnSelectData,
+  convertToObjectIdMongodb,
+} = require("~/utils");
 
 const findAllDraftsForShop = async ({ query, limit, skip }) => {
   return await queryProduct({ query, limit, skip });
@@ -35,8 +38,8 @@ const searchProductByUser = async ({ keySearch }) => {
 
 const publishProductByShop = async ({ product_shop, product_id }) => {
   const foundShop = await product.findOne({
-    product_shop: new Types.ObjectId(product_shop),
-    _id: new Types.ObjectId(product_id),
+    product_shop: convertToObjectIdMongodb(product_shop),
+    _id: convertToObjectIdMongodb(product_id),
   });
   if (!foundShop) return null;
 
@@ -49,8 +52,8 @@ const publishProductByShop = async ({ product_shop, product_id }) => {
 
 const unPublishProductByShop = async ({ product_shop, product_id }) => {
   const foundShop = await product.findOne({
-    product_shop: new Types.ObjectId(product_shop),
-    _id: new Types.ObjectId(product_id),
+    product_shop: convertToObjectIdMongodb(product_shop),
+    _id: convertToObjectIdMongodb(product_id),
   });
   if (!foundShop) return null;
 
