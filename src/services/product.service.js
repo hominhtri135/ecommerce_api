@@ -15,7 +15,7 @@ const {
   unPublishProductByShop,
   searchProductByUser,
   findAllProducts,
-  findProduct,
+  getProductById,
   updateProductById,
 } = require("~/models/repositories/product.repo");
 const { removeUndefinedObject, updateNestedObjectParser } = require("~/utils");
@@ -84,7 +84,7 @@ class ProductFactory {
 
   static async findProduct({ product_id }) {
     console.log("Find Product::" + product_id);
-    return await findProduct({
+    return await getProductById({
       product_id,
       unSelect: ["__v", "product_variations"],
     });

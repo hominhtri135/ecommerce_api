@@ -78,7 +78,7 @@ const findAllProducts = async ({ limit, sort, page, filter, select }) => {
   return prodcuts;
 };
 
-const findProduct = async ({ product_id, unSelect }) => {
+const getProductById = async ({ product_id, unSelect = [] }) => {
   return await product
     .findById(product_id)
     .select(getUnSelectData(unSelect))
@@ -112,6 +112,6 @@ module.exports = {
   unPublishProductByShop,
   searchProductByUser,
   findAllProducts,
-  findProduct,
+  getProductById,
   updateProductById,
 };
