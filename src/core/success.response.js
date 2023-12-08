@@ -17,12 +17,12 @@ class SuccessResponse {
     metadata = {},
   }) {
     this.message = !message ? reasonStatusCode : message;
-    this.status = statusCode;
+    this.statusCode = statusCode;
     this.metadata = metadata;
   }
 
   send(res, headers = {}) {
-    return res.status(this.status).json(this);
+    return res.status(this.statusCode).json(this);
   }
 }
 
@@ -34,7 +34,7 @@ class OK extends SuccessResponse {
 
 class CREATED extends SuccessResponse {
   constructor({
-    options = {},
+    // options = {},
     message,
     statusCode = StatusCode.CREATED,
     reasonStatusCode = ReasonStatusCode.CREATED,
@@ -42,7 +42,7 @@ class CREATED extends SuccessResponse {
   }) {
     super({ message, statusCode, reasonStatusCode, metadata });
     //send options
-    this.options = options;
+    // this.options = options;
   }
 }
 

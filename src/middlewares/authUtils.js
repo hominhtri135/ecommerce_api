@@ -73,6 +73,7 @@ const authentication = asyncHandler(async (req, res, next) => {
   if (!accessToken) throw new AuthFailureError("Invalid Request");
 
   try {
+    console.log("keyStore:::", keyStore);
     const decodeUser = JWT.verify(accessToken, keyStore.publicKey);
     if (userId !== decodeUser.userId)
       throw new AuthFailureError("Invalid UserId");
@@ -84,8 +85,24 @@ const authentication = asyncHandler(async (req, res, next) => {
   }
 });
 
+const manager = (req, res, next) => {
+  if (req.user && (req.user.role === "MANAGER" || req.user.role === "ADMIN")) {
+    next();
+  } else {
+    throw new AuthFailureError("Not authorized as an Manager");
+  }
+};
+
+const admin = (req, res, next) => {
+  if (req.user && req.user.role === "ADMIN") {
+    next();
+  } else {
+    throw new AuthFailureError("Not authorized as an Admin");
+  }
+};
+
 const verifyJWT = async (token, keySecret) => {
   return await JWT.verify(token, keySecret);
 };
 
-module.exports = { createTokenPair, authentication, verifyJWT };
+module.exports = { createTokenPair, authentication, verifyJWT, manager, admin };

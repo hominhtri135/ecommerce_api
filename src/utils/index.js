@@ -2,6 +2,7 @@
 
 const _ = require("lodash");
 const { Types } = require("mongoose");
+const { BadRequestError } = require("~/core/error.response");
 
 const convertToObjectIdMongodb = (id) => {
   return new Types.ObjectId(id);
@@ -17,19 +18,9 @@ const getSelectData = (select = []) => {
 };
 
 // ['a', 'b'] => {a: 0, b:0}
-const getUnSelectData = (select = []) => {
-  return Object.fromEntries(select.map((el) => [el, 0]));
+const getUnSelectData = (unSelect = []) => {
+  return Object.fromEntries(unSelect.map((el) => [el, 0]));
 };
-
-// const removeUndefinedObject = (obj) => {
-//   Object.keys(obj).forEach((k) => {
-//     if (obj[k] === null || obj[k] === undefined) {
-//       delete obj[k];
-//     }
-//   });
-
-//   return obj;
-// };
 
 const removeUndefinedObject = (obj) => {
   Object.keys(obj).forEach((key) => {
@@ -68,6 +59,35 @@ const updateNestedObjectParser = (obj) => {
   return final;
 };
 
+const validatePassword = (password) => {
+  // var regex = /^.*(?=.{8,})(?=.*[a-zA-Z])(?=.*[!@#$%^&*()_+{}:"<>?<>]).*$/; // it nhat 8 ki tu, 1 in hoa, 1 ki tu dac biet
+  var regex = /^.*(?=.{6,}).*$/; // it nhat 6 ki tu
+  if (!regex.test(password)) {
+    return false;
+  }
+  // if (password.length < 6) {
+  //   return false;
+  // }
+
+  return true;
+};
+
+const validateRequiredFields = (data) => {
+  const keys = [];
+  for (let key in data) {
+    if (data[key] === null || data[key] === undefined) {
+      keys.push(key);
+    }
+  }
+
+  const missingFields = keys.join(", ");
+  if (missingFields) {
+    throw new BadRequestError(`Missing required fields: ${missingFields}`);
+  }
+
+  return true;
+};
+
 module.exports = {
   convertToObjectIdMongodb,
   getInfoData,
@@ -75,4 +95,6 @@ module.exports = {
   getUnSelectData,
   removeUndefinedObject,
   updateNestedObjectParser,
+  validatePassword,
+  validateRequiredFields,
 };

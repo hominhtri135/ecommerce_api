@@ -24,6 +24,7 @@ class AccessController {
 
   login = async (req, res, next) => {
     new SuccessResponse({
+      message: "Login success!",
       metadata: await AccessService.login(req.body),
     }).send(res);
   };
@@ -33,9 +34,19 @@ class AccessController {
       message: "Regiserted OK!",
       metadata: await AccessService.signUp(req.body),
       //send options
-      options: {
-        limit: 10,
-      },
+      // options: {
+      //   limit: 10,
+      // },
+    }).send(res);
+  };
+
+  updatePassword = async (req, res, next) => {
+    new SuccessResponse({
+      message: "Password changed successfully.",
+      metadata: await AccessService.updatePassword({
+        user: req.user,
+        ...req.body,
+      }),
     }).send(res);
   };
 }

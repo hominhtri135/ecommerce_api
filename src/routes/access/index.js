@@ -1,24 +1,30 @@
 "use strict";
 
 const express = require("express");
-const { authentication } = require("~/auth/authUtils");
+const { authentication } = require("~/middlewares/authUtils");
 const accessController = require("~/controllers/access.controller");
 const asyncHandler = require("~/helpers/asyncHandler");
 const router = express.Router();
 
 // signUp
-router.post("/shop/signup", asyncHandler(accessController.signUp));
+router.post("/auth/signup", asyncHandler(accessController.signUp));
 
 // login
-router.post("/shop/login", asyncHandler(accessController.login));
+router.post("/auth/login", asyncHandler(accessController.login));
+
+// login with social account
 
 // authentication //
 router.use(authentication);
 ////////////////////
-router.post("/shop/logout", asyncHandler(accessController.logout));
+router.post("/auth/logout", asyncHandler(accessController.logout));
 router.post(
-  "/shop/handlerRefreshToken",
+  "/auth/refresh-token",
   asyncHandler(accessController.handlerRefreshToken)
+);
+router.patch(
+  "/auth/update-password",
+  asyncHandler(accessController.updatePassword)
 );
 
 module.exports = router;

@@ -1,23 +1,26 @@
 "use strict";
 
-const shopModel = require("~/models/shop.model");
+const userModel = require("~/models/user.model");
 const bcrypt = require("bcrypt");
 const crypto = require("node:crypto");
 const KeyTokenService = require("~/services/keyToken.service");
-const { createTokenPair } = require("~/auth/authUtils");
-const { getInfoData } = require("~/utils");
+const { createTokenPair } = require("~/middlewares/authUtils");
+const {
+  getInfoData,
+  validatePassword,
+  validateRequiredFields,
+} = require("~/utils");
 const {
   BadRequestError,
   ConflictRequestError,
   ForbiddenError,
   AuthFailureError,
 } = require("~/core/error.response");
-const { findByEmail } = require("~/services/shop.service");
+const { findByEmail } = require("~/services/user.service");
 
-const RoleShop = {
-  SHOP: "SHOP",
-  WRITER: "WRITER",
-  EDITOR: "EDITOR",
+const RoleUser = {
+  USER: "USER",
+  MANAGER: "MANAGER",
   ADMIN: "ADMIN",
 };
 
@@ -27,6 +30,9 @@ class AccessService {
   */
   static handlerRefreshToken = async ({ keyStore, user, refreshToken }) => {
     const { userId, email } = user;
+    if (!refreshToken) throw new AuthFailureError("Don't find refresh token");
+
+    // neu nhu refreshtoken da co trong danh su da duoc su dung
     if (keyStore.refreshTokensUsed.includes(refreshToken)) {
       // xoa tat ca token trong keyStore
       await KeyTokenService.deleteKeyById(userId);
@@ -34,10 +40,10 @@ class AccessService {
     }
 
     if (keyStore.refreshToken !== refreshToken)
-      throw new AuthFailureError("Shop not registered!");
+      throw new AuthFailureError("Refresh token don't match!");
 
     const foundShop = await findByEmail({ email });
-    if (!foundShop) throw new AuthFailureError("Shop not registered!");
+    if (!foundShop) throw new AuthFailureError("Invalid token!");
 
     //create 1 cap token moi
     const tokens = await createTokenPair(
@@ -57,10 +63,11 @@ class AccessService {
     });
 
     return {
-      user: getInfoData({
-        fields: ["userId", "email"],
-        object: user,
-      }),
+      // user: getInfoData({
+      //   fields: ["userId", "email"],
+      //   object: user,
+      // }),
+      user,
       tokens,
     };
   };
@@ -78,18 +85,17 @@ class AccessService {
     4 - generate tokens
     5 - get data return login
   */
-  static login = async ({ email, password, refreshToken = null, ...props }) => {
+  static login = async ({ email, password, refreshToken = null }) => {
     // 1 - check email in dbs
 
-    const foundShop = await findByEmail({ email });
-    console.log({ email, props });
+    const foundUser = await findByEmail({ email });
 
-    if (!foundShop) {
-      throw new BadRequestError("Shop not registered");
+    if (!foundUser) {
+      throw new BadRequestError("User not registered");
     }
 
     // 2 - match password
-    const match = await bcrypt.compare(password, foundShop.password);
+    const match = await bcrypt.compare(password, foundUser.password);
     if (!match) {
       throw new AuthFailureError("Authentication error");
     }
@@ -100,7 +106,7 @@ class AccessService {
     const privateKey = crypto.randomBytes(64).toString("hex");
 
     // 4 - generate tokens
-    const { _id: userId } = foundShop;
+    const { _id: userId } = foundUser;
     const tokens = await createTokenPair(
       { userId, email },
       publicKey,
@@ -116,9 +122,19 @@ class AccessService {
 
     // 5 - get data return login
     return {
-      shop: getInfoData({
-        fields: ["_id", "name", "email"],
-        object: foundShop,
+      user: getInfoData({
+        fields: [
+          "_id",
+          "name",
+          "email",
+          "phone",
+          "avatar",
+          "address",
+          "role",
+          "isVerify",
+          "lock",
+        ],
+        object: foundUser,
       }),
       tokens,
     };
@@ -127,60 +143,129 @@ class AccessService {
   static signUp = async ({ name, email, password }) => {
     // step 1: check email exists?
 
-    const holderShop = await shopModel.findOne({ email }).lean();
+    const holderShop = await userModel.findOne({ email }).lean();
     if (holderShop) {
       throw new BadRequestError("Error: Shop already registered!");
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const newShop = await shopModel.create({
+    const newUser = await userModel.create({
       name,
       email,
       password: passwordHash,
-      roles: [RoleShop.SHOP],
     });
-
-    if (newShop) {
+    console.log("newUser", newUser);
+    if (newUser) {
       // created privateKey, publicKey
       const publicKey = crypto.randomBytes(64).toString("hex");
       const privateKey = crypto.randomBytes(64).toString("hex");
       // Public key CryptoGraphy Standards !
-      console.log({ publicKey, privateKey }); // save collection KeyStore
+      console.log({ publicKey, privateKey });
+
+      const tokens = await createTokenPair(
+        { userId: newUser._id, email },
+        publicKey,
+        privateKey
+      );
+      console.log(`Created Token Success::`, tokens);
+
       const keyStore = await KeyTokenService.createKeyToken({
-        userId: newShop._id,
+        userId: newUser._id,
         publicKey,
         privateKey,
+        refreshToken: tokens.refreshToken,
       });
 
       if (!keyStore) {
         throw new BadRequestError("Error: keyStore error");
       }
 
-      // created token pair (AT and RT)
-      const tokens = await createTokenPair(
-        { userId: newShop._id, email },
-        publicKey,
-        privateKey
-      );
-      console.log(`Created Token Success::`, tokens);
-
       return {
-        code: 201,
-        metadata: {
-          shop: getInfoData({
-            fields: ["_id", "name", "email"],
-            object: newShop,
-          }),
-          tokens,
-        },
+        user: getInfoData({
+          fields: [
+            "_id",
+            "name",
+            "email",
+            "phone",
+            "avatar",
+            "address",
+            "role",
+            "isVerify",
+            "lock",
+          ],
+          object: newUser,
+        }),
+        tokens,
       };
     }
 
     return {
-      code: 200,
+      statusCode: 200,
       metadata: null,
     };
   };
+
+  static updatePassword = async ({
+    user,
+    password_old,
+    password_new,
+    password_confirmation,
+  }) => {
+    // Kiểm tra từng trường bắt buộc
+    validateRequiredFields({
+      password_old,
+      password_new,
+      password_confirmation,
+    });
+
+    const { email } = user;
+
+    const foundUser = await findByEmail({ email });
+    if (!foundUser) throw new BadRequestError("User not registered");
+
+    const match = await bcrypt.compare(password_old, foundUser.password);
+    if (!match) throw new AuthFailureError("The old password is incorrect.");
+
+    if (!validatePassword(password_new))
+      throw new BadRequestError(
+        "New password must have at least 6 characters."
+      );
+
+    if (password_new !== password_confirmation)
+      throw new BadRequestError(
+        "New passwords do not match. Please check again."
+      );
+
+    if (password_old === password_new)
+      throw new BadRequestError(
+        "New password cannot be the same as current password. Please enter a different password."
+      );
+
+    // kiem tra mat khau moi da duoc su dung truoc do hay chua
+    const passwordsUsed = foundUser.passwordsUsed;
+    for (let hash of passwordsUsed) {
+      // So sanh password_new với moi hash
+      if (await bcrypt.compare(password_new, hash))
+        throw new BadRequestError(
+          "New password has already been used before. Please enter a password that you have not used."
+        );
+    }
+
+    //update password
+    const passwordHash = await bcrypt.hash(password_new, 10);
+    await foundUser.updateOne({
+      $set: {
+        password: passwordHash,
+      },
+      $addToSet: {
+        passwordsUsed: foundUser.password, //them vao password da duoc su dung
+      },
+    });
+
+    return true;
+  };
+
+  static resetPassword = async ({ user }) => {};
 }
 
 module.exports = AccessService;

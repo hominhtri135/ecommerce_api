@@ -1,4 +1,5 @@
 require("dotenv").config();
+const path = require("path");
 require("module-alias/register");
 const compression = require("compression");
 const express = require("express");
@@ -7,6 +8,9 @@ const morgan = require("morgan");
 const swaggerDoc = require("swagger-ui-express");
 const swaggerDoccumentation = require("~/helpers/documentation");
 const app = express();
+
+// access public folder
+app.use(express.static("public"));
 
 // console.log(`Process::`, process.env);
 // init middlewares

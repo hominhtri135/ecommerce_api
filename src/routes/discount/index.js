@@ -1,7 +1,7 @@
 "use strict";
 
 const express = require("express");
-const { authentication } = require("~/auth/authUtils");
+const { authentication } = require("~/middlewares/authUtils");
 const discountController = require("~/controllers/discount.controller");
 const asyncHandler = require("~/helpers/asyncHandler");
 const router = express.Router();
