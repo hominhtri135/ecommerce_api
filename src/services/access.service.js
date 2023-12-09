@@ -17,12 +17,9 @@ const {
   AuthFailureError,
 } = require("~/core/error.response");
 const { findByEmail } = require("~/services/user.service");
+const { sendMailVerifyEmail } = require("~/helpers/mailer");
 
-const RoleUser = {
-  USER: "USER",
-  MANAGER: "MANAGER",
-  ADMIN: "ADMIN",
-};
+const BCRYPT_HASH = Number(process.env.BCRYPT_HASH);
 
 class AccessService {
   /*
@@ -42,8 +39,8 @@ class AccessService {
     if (keyStore.refreshToken !== refreshToken)
       throw new AuthFailureError("Refresh token don't match!");
 
-    const foundShop = await findByEmail({ email });
-    if (!foundShop) throw new AuthFailureError("Invalid token!");
+    const foundUser = await findByEmail({ email });
+    if (!foundUser) throw new AuthFailureError("Invalid token!");
 
     //create 1 cap token moi
     const tokens = await createTokenPair(
@@ -143,12 +140,12 @@ class AccessService {
   static signUp = async ({ name, email, password }) => {
     // step 1: check email exists?
 
-    const holderShop = await userModel.findOne({ email }).lean();
-    if (holderShop) {
-      throw new BadRequestError("Error: Shop already registered!");
+    const holderUser = await userModel.findOne({ email }).lean();
+    if (holderUser) {
+      throw new BadRequestError("Error: User already registered!");
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, BCRYPT_HASH);
     const newUser = await userModel.create({
       name,
       email,
@@ -179,6 +176,11 @@ class AccessService {
       if (!keyStore) {
         throw new BadRequestError("Error: keyStore error");
       }
+
+      await sendMailVerifyEmail({
+        name: newUser.name,
+        email: newUser.email,
+      });
 
       return {
         user: getInfoData({
@@ -252,7 +254,7 @@ class AccessService {
     }
 
     //update password
-    const passwordHash = await bcrypt.hash(password_new, 10);
+    const passwordHash = await bcrypt.hash(password_new, BCRYPT_HASH);
     await foundUser.updateOne({
       $set: {
         password: passwordHash,
@@ -266,6 +268,30 @@ class AccessService {
   };
 
   static resetPassword = async ({ user }) => {};
+
+  static verifyEmail = async ({ email, emailToken }) => {
+    // Kiểm tra từng trường bắt buộc
+    validateRequiredFields({ email, emailToken });
+
+    const foundUser = await findByEmail({ email });
+    if (!foundUser) throw new BadRequestError("User not registered");
+
+    const match = await bcrypt.compare(email, emailToken);
+    if (!match) throw new AuthFailureError("Invalid email.");
+
+    foundUser.isVerify = true;
+    await foundUser.save();
+    return { ok: true, message: "Verify Email Successfully." };
+  };
+
+  static sendMailVerifyEmail = async ({ name, email }) => {
+    const foundUser = await findByEmail({ email });
+    if (!foundUser) throw new BadRequestError("User not registered");
+
+    if (foundUser.isVerify) throw new BadRequestError("Email already verified");
+    sendMailVerifyEmail({ name, email });
+    return { ok: true, message: "Send Mail Verify Successfully." };
+  };
 }
 
 module.exports = AccessService;

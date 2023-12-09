@@ -49,6 +49,20 @@ class AccessController {
       }),
     }).send(res);
   };
+
+  verifyEmail = async (req, res, next) => {
+    new SuccessResponse({
+      message: "Verify Email Successfully.",
+      metadata: await AccessService.verifyEmail(req.body),
+    }).send(res);
+  };
+
+  sendMailVerifyEmail = async (req, res, next) => {
+    new SuccessResponse({
+      message: "Send Mail Verify Successfully.",
+      metadata: await AccessService.sendMailVerifyEmail(req.user),
+    }).send(res);
+  };
 }
 
 module.exports = new AccessController();

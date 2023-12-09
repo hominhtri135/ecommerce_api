@@ -12,6 +12,9 @@ router.post("/auth/signup", asyncHandler(accessController.signUp));
 // login
 router.post("/auth/login", asyncHandler(accessController.login));
 
+// verify Email
+router.post("/auth/verify-email", asyncHandler(accessController.verifyEmail));
+
 // login with social account
 
 // authentication //
@@ -25,6 +28,12 @@ router.post(
 router.patch(
   "/auth/update-password",
   asyncHandler(accessController.updatePassword)
+);
+
+// send mail verify Email
+router.post(
+  "/auth/send-mail-verify",
+  asyncHandler(accessController.sendMailVerifyEmail)
 );
 
 module.exports = router;
