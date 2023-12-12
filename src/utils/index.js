@@ -61,7 +61,10 @@ const updateNestedObjectParser = (obj) => {
 
 const validatePassword = (password) => {
   // var regex = /^.*(?=.{8,})(?=.*[a-zA-Z])(?=.*[!@#$%^&*()_+{}:"<>?<>]).*$/; // it nhat 8 ki tu, 1 in hoa, 1 ki tu dac biet
-  var regex = /^.*(?=.{6,}).*$/; // it nhat 6 ki tu
+  const regex = /^.*(?=.{6,}).*$/; // it nhat 6 ki tu
+
+  if (!password) return false;
+
   if (!regex.test(password)) {
     return false;
   }
@@ -72,10 +75,35 @@ const validatePassword = (password) => {
   return true;
 };
 
+const validateEmail = (email) => {
+  const emailRegex =
+    /^[-!#$%&'*+\/0-9=?A-Z^_a-z{|}~](\.?[-!#$%&'*+\/0-9=?A-Z^_a-z`{|}~])*@[a-zA-Z0-9](-*\.?[a-zA-Z0-9])*\.[a-zA-Z](-?[a-zA-Z0-9])+$/;
+  if (!email) return false;
+
+  if (email.length > 254) return false;
+
+  const valid = emailRegex.test(email);
+  if (!valid) return false;
+
+  // Further checking of some things regex can't handle
+  const parts = email.split("@");
+  if (parts[0].length > 64) return false;
+
+  const domainParts = parts[1].split(".");
+  if (
+    domainParts.some(function (part) {
+      return part.length > 63;
+    })
+  )
+    return false;
+
+  return true;
+};
+
 const validateRequiredFields = (data) => {
   const keys = [];
   for (let key in data) {
-    if (data[key] === null || data[key] === undefined) {
+    if (data[key] === null || data[key] === undefined || data[key] === "") {
       keys.push(key);
     }
   }
@@ -96,5 +124,6 @@ module.exports = {
   removeUndefinedObject,
   updateNestedObjectParser,
   validatePassword,
+  validateEmail,
   validateRequiredFields,
 };

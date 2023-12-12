@@ -2,12 +2,22 @@ require("dotenv").config();
 const path = require("path");
 require("module-alias/register");
 const compression = require("compression");
+const cors = require("cors");
 const express = require("express");
 const { default: helmet } = require("helmet");
 const morgan = require("morgan");
 const swaggerDoc = require("swagger-ui-express");
 const swaggerDoccumentation = require("~/helpers/documentation");
 const app = express();
+
+// cors
+app.use(
+  cors({
+    origin: "*",
+    credentials: true, //access-control-allow-credentials:true
+    optionSuccessStatus: 200,
+  })
+);
 
 // access public folder
 app.use(express.static("public"));

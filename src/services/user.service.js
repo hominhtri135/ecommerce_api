@@ -7,6 +7,16 @@ const findByEmail = async ({ email, select = {} }) => {
   return await userModel.findOne({ email }).select(select);
 };
 
+const findByEmailorUsername = async ({ username, select = {} }) => {
+  return await userModel
+    .findOne({
+      $or: [{ email: username }, { username }],
+    })
+    .select(select)
+    .lean();
+};
+
 module.exports = {
   findByEmail,
+  findByEmailorUsername,
 };

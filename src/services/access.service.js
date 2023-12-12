@@ -9,6 +9,7 @@ const {
   getInfoData,
   validatePassword,
   validateRequiredFields,
+  validateEmail,
 } = require("~/utils");
 const {
   BadRequestError,
@@ -16,7 +17,10 @@ const {
   ForbiddenError,
   AuthFailureError,
 } = require("~/core/error.response");
-const { findByEmail } = require("~/services/user.service");
+const {
+  findByEmail,
+  findByEmailorUsername,
+} = require("~/services/user.service");
 const { sendMailVerifyEmail } = require("~/helpers/mailer");
 
 const BCRYPT_HASH = Number(process.env.BCRYPT_HASH);
@@ -83,12 +87,17 @@ class AccessService {
     5 - get data return login
   */
   static login = async ({ email, password, refreshToken = null }) => {
+    validateRequiredFields({ email, password });
+    if (!validateEmail(email)) throw new BadRequestError("Email is not valid.");
     // 1 - check email in dbs
 
     const foundUser = await findByEmail({ email });
-
     if (!foundUser) {
-      throw new BadRequestError("User not registered");
+      throw new BadRequestError("User not registered.");
+    }
+
+    if (foundUser.type !== "SYSTEM") {
+      throw new AuthFailureError(`User is logged in using ${foundUser.type}.`);
     }
 
     // 2 - match password
@@ -124,12 +133,72 @@ class AccessService {
           "_id",
           "name",
           "email",
+          "username",
           "phone",
           "avatar",
           "address",
           "role",
           "isVerify",
           "lock",
+          "type",
+        ],
+        object: foundUser,
+      }),
+      tokens,
+    };
+  };
+
+  static loginSocialMedia = async ({ username, type }) => {
+    console.log("loginSocialMedia:::", { username, type });
+    validateRequiredFields({ username, type });
+    if (!validateEmail(username))
+      throw new BadRequestError("Email is not valid.");
+    // 1 - check email in dbs
+
+    let foundUser = await findByEmailorUsername({ username });
+
+    if (!foundUser) {
+      throw new BadRequestError("User not registered.");
+    }
+
+    if (foundUser.type !== type?.toString().toUpperCase())
+      throw new AuthFailureError("User is logged in using another method.");
+
+    // 3 - create AT vs RT and save
+    // created privateKey, publicKey
+    const publicKey = crypto.randomBytes(64).toString("hex");
+    const privateKey = crypto.randomBytes(64).toString("hex");
+
+    // 4 - generate tokens
+    const { _id: userId } = foundUser;
+    const tokens = await createTokenPair(
+      { userId, email: username },
+      publicKey,
+      privateKey
+    );
+
+    await KeyTokenService.createKeyToken({
+      userId,
+      publicKey,
+      privateKey,
+      refreshToken: tokens.refreshToken,
+    });
+
+    // 5 - get data return login
+    return {
+      user: getInfoData({
+        fields: [
+          "_id",
+          "name",
+          "email",
+          "username",
+          "phone",
+          "avatar",
+          "address",
+          "role",
+          "isVerify",
+          "lock",
+          "type",
         ],
         object: foundUser,
       }),
@@ -138,6 +207,12 @@ class AccessService {
   };
 
   static signUp = async ({ name, email, password }) => {
+    validateRequiredFields({ name, email, password });
+
+    if (!validateEmail(email)) throw new BadRequestError("Email is not valid.");
+
+    if (!validatePassword(password))
+      throw new BadRequestError("Password must have at least 6 characters.");
     // step 1: check email exists?
 
     const holderUser = await userModel.findOne({ email }).lean();
@@ -194,6 +269,80 @@ class AccessService {
             "role",
             "isVerify",
             "lock",
+          ],
+          object: newUser,
+        }),
+        tokens,
+      };
+    }
+
+    return {
+      statusCode: 200,
+      metadata: null,
+    };
+  };
+
+  static signUpSocialMedia = async ({ type, username, name, image }) => {
+    validateRequiredFields({ type, username, name, image });
+    // step 1: check email exists?
+
+    const holderUser = await findByEmailorUsername({ username });
+    if (holderUser) {
+      throw new BadRequestError("User already registered!");
+    }
+
+    const newUser = await userModel.create({
+      name,
+      email: username,
+      username,
+      avatar: {
+        url: image,
+      },
+      isVerify: true,
+      type: type?.toString().toUpperCase(),
+    });
+
+    console.log("newUser", newUser);
+
+    if (newUser) {
+      // created privateKey, publicKey
+      const publicKey = crypto.randomBytes(64).toString("hex");
+      const privateKey = crypto.randomBytes(64).toString("hex");
+      // Public key CryptoGraphy Standards !
+      console.log({ publicKey, privateKey });
+
+      const tokens = await createTokenPair(
+        { userId: newUser._id, email: username },
+        publicKey,
+        privateKey
+      );
+      console.log(`Created Token Success::`, tokens);
+
+      const keyStore = await KeyTokenService.createKeyToken({
+        userId: newUser._id,
+        publicKey,
+        privateKey,
+        refreshToken: tokens.refreshToken,
+      });
+
+      if (!keyStore) {
+        throw new BadRequestError("Error: keyStore error");
+      }
+
+      return {
+        user: getInfoData({
+          fields: [
+            "_id",
+            "name",
+            "email",
+            "username",
+            "phone",
+            "avatar",
+            "address",
+            "role",
+            "isVerify",
+            "lock",
+            "type",
           ],
           object: newUser,
         }),

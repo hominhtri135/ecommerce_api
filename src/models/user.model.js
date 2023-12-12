@@ -23,6 +23,12 @@ var userSchema = new Schema(
       unique: true,
       lowercase: true,
     },
+    username: {
+      type: String,
+      trim: true,
+      unique: true,
+      lowercase: true,
+    },
     phone: {
       type: String,
       maxLength: [10, "no should have maximum 10 digits"],
@@ -33,7 +39,6 @@ var userSchema = new Schema(
       type: String,
       min: 6,
       trim: true,
-      required: true,
     },
     passwordsUsed: {
       type: Array,
@@ -64,7 +69,8 @@ var userSchema = new Schema(
     },
     type: {
       type: String,
-      enum: ["GOOGLE", "FACEBOOK"],
+      enum: ["SYSTEM", "GOOGLE", "FACEBOOK"],
+      default: "SYSTEM",
     }, // Login type for Facebook or Google
   },
   {

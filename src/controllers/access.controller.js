@@ -29,6 +29,13 @@ class AccessController {
     }).send(res);
   };
 
+  loginSocialMedia = async (req, res, next) => {
+    new SuccessResponse({
+      message: "Login Social Media success!",
+      metadata: await AccessService.loginSocialMedia(req.body),
+    }).send(res);
+  };
+
   signUp = async (req, res, next) => {
     new CREATED({
       message: "Regiserted OK!",
@@ -37,6 +44,13 @@ class AccessController {
       // options: {
       //   limit: 10,
       // },
+    }).send(res);
+  };
+
+  signUpSocialMedia = async (req, res, next) => {
+    new CREATED({
+      message: "Regiserted Social Media OK!",
+      metadata: await AccessService.signUpSocialMedia(req.body),
     }).send(res);
   };
 
