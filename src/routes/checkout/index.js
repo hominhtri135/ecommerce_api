@@ -8,5 +8,6 @@ const router = express.Router();
 
 router.use(authentication);
 router.post("/review", asyncHandler(checkoutController.checkoutReview));
+router.post("/order", asyncHandler(checkoutController.orderByUser));
 
 module.exports = router;

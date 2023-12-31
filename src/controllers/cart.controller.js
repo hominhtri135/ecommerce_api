@@ -7,7 +7,10 @@ class CartController {
   addToCart = async (req, res, next) => {
     new SuccessResponse({
       message: "Create New Cart Success",
-      metadata: await CartService.addToCart(req.body),
+      metadata: await CartService.addToCart({
+        userId: req.user.userId,
+        product: req.body.product,
+      }),
     }).send(res);
   };
 
@@ -15,7 +18,10 @@ class CartController {
   updateCart = async (req, res, next) => {
     new SuccessResponse({
       message: "Update Cart Success",
-      metadata: await CartService.addToCart2(req.body),
+      metadata: await CartService.updateCart({
+        userId: req.user.userId,
+        product: req.body.product,
+      }),
     }).send(res);
   };
 
@@ -23,7 +29,10 @@ class CartController {
   deleteCart = async (req, res, next) => {
     new SuccessResponse({
       message: "Delete Cart Success",
-      metadata: await CartService.deleteUserCart(req.body),
+      metadata: await CartService.deleteItemUserCart({
+        userId: req.user.userId,
+        product: req.body.product,
+      }),
     }).send(res);
   };
 

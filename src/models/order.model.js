@@ -3,12 +3,16 @@
 const { model, Schema, Types } = require("mongoose"); // Erase if already required
 
 const DOCUMENT_NAME = "Order";
-const COLLECTION_NAME = "Orders";
+const COLLECTION_NAME = "orders";
 
 // Declare the Schema of the Mongo model
 var orderSchema = new Schema(
   {
-    order_userId: { type: Number, required: true },
+    order_userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     order_checkout: { type: Object, default: {} },
     /*
         order_checkout = {

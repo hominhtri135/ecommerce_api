@@ -6,6 +6,9 @@ const { checkProductByServer } = require("~/models/repositories/product.repo");
 const { getDiscountAmount } = require("./discount.service");
 const { acquireLock, releaseLock } = require("./redis.service");
 const { order } = require("~/models/order.model");
+const { refundInventory } = require("~/models/repositories/inventory.repo");
+const { deleteCartByUserId } = require("./cart.service");
+const { validatePassword, validateRequiredFields } = require("~/utils");
 
 class CheckoutService {
   // login and without login
@@ -34,106 +37,92 @@ class CheckoutService {
         ]
     }
     */
-  static async checkoutReview({ cartId, userId, shop_order_ids = [] }) {
+  static async checkoutReview({ cartId, discountCode }) {
     // check cartId exists?
     const foundCart = await findCartById({ cartId });
     if (!foundCart) throw new BadRequestError("Cart does not exist");
 
     const checkout_order = {
-        totalPrice: 0, // tong tien hang
-        feeShip: 0, // phi van chuyen
-        totalDiscount: 0, // tong tien discount giam gia
-        totalCheckout: 0, // tong tien thanh toan
-      },
-      shop_order_ids_new = [];
+      totalOrder: 0, // tong tien hang
+      totalDiscount: 0, // tong tien discount giam gia
+      totalCheckout: 0, // tong tien thanh toan
+    };
 
-    // tinh tong tien bill
-    for (let i = 0; i < shop_order_ids.length; i++) {
-      const {
-        shopId,
-        shop_discounts = [],
-        item_products = [],
-      } = shop_order_ids[i];
-      // check product available
-      const checkProductServer = await checkProductByServer(item_products);
-      console.log(`checkProductServer::`, checkProductServer);
-      if (!checkProductServer[0]) throw new BadRequestError("order wrong!!");
+    const checkProductServer = await checkProductByServer(
+      foundCart.cart_products
+    );
+    console.log(`checkProductServer::`, checkProductServer);
+    if (!checkProductServer[0]) throw new BadRequestError("order wrong!!");
 
-      // tong tien don hang
-      const checkoutPrice = checkProductServer.reduce((acc, product) => {
-        return acc + product.quantity * product.price;
-      }, 0);
+    // tong tien don hang
+    const checkoutPrice = checkProductServer.reduce((acc, product) => {
+      return acc + product.quantity * product.price;
+    }, 0);
+    checkout_order.totalOrder = checkoutPrice;
 
-      // tong tien truoc khi xu ly
-      checkout_order.totalPrice += checkoutPrice;
-
-      const itemCheckout = {
-        shopId,
-        shop_discounts,
-        priceRaw: checkoutPrice, // tien truoc khi giam gia
-        priceApplyDiscount: checkoutPrice,
-        item_products: checkProductServer,
-      };
-
-      // shop_discounts > 0, check xem co hop le hay khong
-      if (shop_discounts.length > 0) {
-        // gia su co 1 discount
-        // get amount discont
-        const { totalOrder, discount, totalPrice } = await getDiscountAmount({
-          codeId: shop_discounts[0].codeId,
-          userId,
-          shopId,
-          products: checkProductServer,
-        });
-        // tong cong discount giam gia
-        checkout_order.totalDiscount += discount;
-
-        // neu tien giam gia lon hon 0
-        if (discount > 0) {
-          itemCheckout.priceApplyDiscount = checkoutPrice - discount;
-        }
-      }
-
-      // tong thanh toan cuoi cung
-      checkout_order.totalCheckout += itemCheckout.priceApplyDiscount;
-      shop_order_ids_new.push(itemCheckout);
+    if (discountCode) {
+      const { discount } = await getDiscountAmount({
+        codeId: discountCode,
+        products: checkProductServer,
+      });
+      checkout_order.totalDiscount = discount;
     }
 
+    checkout_order.totalCheckout =
+      checkout_order.totalOrder - checkout_order.totalDiscount;
+
     return {
-      shop_order_ids,
-      shop_order_ids_new,
+      cart: foundCart,
       checkout_order,
     };
   }
 
   // order
   static async orderByUser({
-    shop_order_ids,
     cartId,
     userId,
-    user_address = {},
-    user_payment = {},
+    discountCode,
+    user_address,
+    user_payment,
   }) {
-    const { shop_order_ids_new, checkout_order } =
-      await CheckoutService.checkoutReview({ cartId, userId, shop_order_ids });
+    validateRequiredFields({ cartId, user_address, user_payment });
+
+    const { cart, checkout_order } = await CheckoutService.checkoutReview({
+      cartId,
+      discountCode,
+    });
 
     // check lai mot lan nua xem vuot ton kho hay khong?
     // get new array Products
-    const products = shop_order_ids_new.flatMap((order) => order.item_products);
+    const products = cart.cart_products;
     console.log(`[1]::`, products);
 
     const acquireProduct = [];
-    for (let i = 0; products.length; i++) {
-      const { productId, quantity } = products[i];
-      const keyLock = await acquireLock(productId, quantity, cartId);
+    for (let i = 0; i < products.length; i++) {
+      const { productId, select } = products[i];
+      const keyLock = await acquireLock(productId, select);
+      console.log({ keyLock });
+      /*
+      xử lý acquireLock
+      xử lý trừ số lượng sản phẩm reservationInventory
+      chỉnh sửa lại cho phù hợp với model order: ispayment, payment, address
+      */
       acquireProduct.push(keyLock ? true : false);
       if (keyLock) {
         await releaseLock(keyLock);
       }
     }
+    console.log({ acquireProduct });
 
-    // check if co  mot san pham het han trong kho
+    // check if co  mot san pham het hang trong kho
     if (acquireProduct.includes(false)) {
+      acquireProduct.forEach(async (value, key) => {
+        if (value === true) {
+          const { productId, select } = products[key];
+          const quantityUpdate = await refundInventory({ productId, select });
+        }
+      });
+
       throw new BadRequestError(
         "Mot so san pham da duoc cap nhat, vui long quay lai gio hang"
       );
@@ -144,12 +133,12 @@ class CheckoutService {
       order_checkout: checkout_order,
       order_shipping: user_address,
       order_payment: user_payment,
-      order_products: shop_order_ids_new,
+      order_products: cart.cart_products,
     });
 
-    // truong hop: neu insert thanh cong thi remove product co torng cart
+    // truong hop: neu insert thanh cong thi remove product co trong cart
     if (newOrder) {
-      // remove product in cart
+      await deleteCartByUserId(userId);
     }
 
     return newOrder;

@@ -17,12 +17,12 @@ const {
   ForbiddenError,
   AuthFailureError,
 } = require("~/core/error.response");
-const {
-  findByEmail,
-  findByEmailorUsername,
-} = require("~/services/user.service");
+const { findByEmail } = require("~/services/user.service");
 const { sendMailVerifyEmail } = require("~/helpers/mailer");
 
+const { OAuth2Client } = require("google-auth-library");
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const BCRYPT_HASH = Number(process.env.BCRYPT_HASH);
 
 class AccessService {
@@ -30,7 +30,7 @@ class AccessService {
    Check this token used?
   */
   static handlerRefreshToken = async ({ keyStore, user, refreshToken }) => {
-    const { userId, email } = user;
+    const { userId, email, role } = user;
     if (!refreshToken) throw new AuthFailureError("Don't find refresh token");
 
     // neu nhu refreshtoken da co trong danh su da duoc su dung
@@ -48,7 +48,7 @@ class AccessService {
 
     //create 1 cap token moi
     const tokens = await createTokenPair(
-      { userId, email },
+      { userId, email, role },
       keyStore.publicKey,
       keyStore.privateKey
     );
@@ -74,6 +74,7 @@ class AccessService {
   };
 
   static logout = async (keyStore) => {
+    console.log("keyStore:::", keyStore);
     const delKey = await KeyTokenService.removeKeyById(keyStore._id);
     console.log({ delKey });
     return delKey;
@@ -96,10 +97,6 @@ class AccessService {
       throw new BadRequestError("User not registered.");
     }
 
-    if (foundUser.type !== "SYSTEM") {
-      throw new AuthFailureError(`User is logged in using ${foundUser.type}.`);
-    }
-
     // 2 - match password
     const match = await bcrypt.compare(password, foundUser.password);
     if (!match) {
@@ -112,9 +109,9 @@ class AccessService {
     const privateKey = crypto.randomBytes(64).toString("hex");
 
     // 4 - generate tokens
-    const { _id: userId } = foundUser;
+    const { _id: userId, role } = foundUser;
     const tokens = await createTokenPair(
-      { userId, email },
+      { userId, email, role },
       publicKey,
       privateKey
     );
@@ -133,14 +130,12 @@ class AccessService {
           "_id",
           "name",
           "email",
-          "username",
           "phone",
           "avatar",
           "address",
           "role",
           "isVerify",
           "lock",
-          "type",
         ],
         object: foundUser,
       }),
@@ -148,21 +143,30 @@ class AccessService {
     };
   };
 
-  static loginSocialMedia = async ({ username, type }) => {
-    console.log("loginSocialMedia:::", { username, type });
-    validateRequiredFields({ username, type });
-    if (!validateEmail(username))
-      throw new BadRequestError("Email is not valid.");
-    // 1 - check email in dbs
+  static loginWithGoogle = async (idToken) => {
+    console.log("loginSocialMedia:::", { idToken });
+    validateRequiredFields({ idToken });
 
-    let foundUser = await findByEmailorUsername({ username });
+    // Verify the Google ID token
+    const ticket = await client.verifyIdToken({
+      idToken: idToken,
+    });
+    const payload = ticket.getPayload();
 
-    if (!foundUser) {
-      throw new BadRequestError("User not registered.");
+    // Check if the user already exists
+    let User = await findByEmail({ email: payload.email });
+
+    if (!User) {
+      User = await userModel.create({
+        name: payload.name,
+        email: payload.email,
+        password: payload.sub,
+        avatar: {
+          url: payload.picture,
+        },
+        isVerify: payload.email_verified,
+      });
     }
-
-    if (foundUser.type !== type?.toString().toUpperCase())
-      throw new AuthFailureError("User is logged in using another method.");
 
     // 3 - create AT vs RT and save
     // created privateKey, publicKey
@@ -170,9 +174,9 @@ class AccessService {
     const privateKey = crypto.randomBytes(64).toString("hex");
 
     // 4 - generate tokens
-    const { _id: userId } = foundUser;
+    const { _id: userId, email, role } = User;
     const tokens = await createTokenPair(
-      { userId, email: username },
+      { userId, email, role },
       publicKey,
       privateKey
     );
@@ -191,16 +195,14 @@ class AccessService {
           "_id",
           "name",
           "email",
-          "username",
           "phone",
           "avatar",
           "address",
           "role",
           "isVerify",
           "lock",
-          "type",
         ],
-        object: foundUser,
+        object: User,
       }),
       tokens,
     };
@@ -234,8 +236,9 @@ class AccessService {
       // Public key CryptoGraphy Standards !
       console.log({ publicKey, privateKey });
 
+      const { _id: userId, role } = newUser;
       const tokens = await createTokenPair(
-        { userId: newUser._id, email },
+        { userId, email, role },
         publicKey,
         privateKey
       );
@@ -269,80 +272,6 @@ class AccessService {
             "role",
             "isVerify",
             "lock",
-          ],
-          object: newUser,
-        }),
-        tokens,
-      };
-    }
-
-    return {
-      statusCode: 200,
-      metadata: null,
-    };
-  };
-
-  static signUpSocialMedia = async ({ type, username, name, image }) => {
-    validateRequiredFields({ type, username, name, image });
-    // step 1: check email exists?
-
-    const holderUser = await findByEmailorUsername({ username });
-    if (holderUser) {
-      throw new BadRequestError("User already registered!");
-    }
-
-    const newUser = await userModel.create({
-      name,
-      email: username,
-      username,
-      avatar: {
-        url: image,
-      },
-      isVerify: true,
-      type: type?.toString().toUpperCase(),
-    });
-
-    console.log("newUser", newUser);
-
-    if (newUser) {
-      // created privateKey, publicKey
-      const publicKey = crypto.randomBytes(64).toString("hex");
-      const privateKey = crypto.randomBytes(64).toString("hex");
-      // Public key CryptoGraphy Standards !
-      console.log({ publicKey, privateKey });
-
-      const tokens = await createTokenPair(
-        { userId: newUser._id, email: username },
-        publicKey,
-        privateKey
-      );
-      console.log(`Created Token Success::`, tokens);
-
-      const keyStore = await KeyTokenService.createKeyToken({
-        userId: newUser._id,
-        publicKey,
-        privateKey,
-        refreshToken: tokens.refreshToken,
-      });
-
-      if (!keyStore) {
-        throw new BadRequestError("Error: keyStore error");
-      }
-
-      return {
-        user: getInfoData({
-          fields: [
-            "_id",
-            "name",
-            "email",
-            "username",
-            "phone",
-            "avatar",
-            "address",
-            "role",
-            "isVerify",
-            "lock",
-            "type",
           ],
           object: newUser,
         }),

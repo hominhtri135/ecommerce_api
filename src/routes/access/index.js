@@ -9,19 +9,13 @@ const router = express.Router();
 // signUp
 router.post("/auth/signup", asyncHandler(accessController.signUp));
 
-// signUp social media account
-router.post(
-  "/auth/signup-social-media",
-  asyncHandler(accessController.signUpSocialMedia)
-);
-
 // login
 router.post("/auth/login", asyncHandler(accessController.login));
 
-// login social media account
+// login google account
 router.post(
-  "/auth/login-social-media",
-  asyncHandler(accessController.loginSocialMedia)
+  "/auth/google/login",
+  asyncHandler(accessController.loginWithGoogle)
 );
 
 // verify Email

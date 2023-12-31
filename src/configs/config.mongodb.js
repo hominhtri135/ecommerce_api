@@ -11,6 +11,17 @@ const dev = {
   },
 };
 
+const test = {
+  app: {
+    port: process.env.DEV_APP_PORT || "3056",
+  },
+  db: {
+    host: process.env.DEV_DB_HOST || "localhost",
+    port: process.env.DEV_DB_PORT || "27017",
+    name: process.env.DEV_DB_NAME || "shopTest",
+  },
+};
+
 const pro = {
   app: {
     port: process.env.PRO_APP_PORT || "3000",
@@ -22,7 +33,7 @@ const pro = {
   },
 };
 
-const config = { dev, pro };
+const config = { dev, pro, test };
 const env = process.env.NODE_ENV || "dev";
 
 console.log(config[env], env);

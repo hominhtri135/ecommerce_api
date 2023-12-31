@@ -4,8 +4,17 @@ const _ = require("lodash");
 const { Types } = require("mongoose");
 const { BadRequestError } = require("~/core/error.response");
 
+const isValidObjectId = (id) => {
+  return /^[0-9a-fA-F]{24}$/.test(id);
+};
+
 const convertToObjectIdMongodb = (id) => {
-  return new Types.ObjectId(id);
+  if (!isValidObjectId(id)) {
+    return null;
+  }
+
+  const ObjectId = new Types.ObjectId(id);
+  return ObjectId;
 };
 
 const getInfoData = ({ fields = [], object = {} }) => {
@@ -26,7 +35,10 @@ const removeUndefinedObject = (obj) => {
   Object.keys(obj).forEach((key) => {
     if (obj[key] && typeof obj[key] === "object")
       removeUndefinedObject(obj[key]);
-    else if (obj[key] == null) delete obj[key];
+    if (obj[key] === null || obj[key] === undefined || obj[key] === "")
+      delete obj[key];
+    // remove array empty
+    if (Array.isArray(obj[key]) && obj[key].length === 0) delete obj[key];
   });
   return obj;
 };
@@ -58,6 +70,36 @@ const updateNestedObjectParser = (obj) => {
   });
   return final;
 };
+
+// nested array and object parser
+// const updateNestedObjectParser = (obj) => {
+//   const final = {};
+
+//   const processObject = (data, parentKey = "") => {
+//     Object.keys(data).forEach((key) => {
+//       const currentKey = parentKey ? `${parentKey}.${key}` : key;
+
+//       if (Array.isArray(data[key])) {
+//         data[key].forEach((item) => {
+//           if (key !== "_id") {
+//             const itemId = item._id;
+//             processObject(item, `${currentKey}.${itemId}`);
+//           }
+//         });
+//       } else if (typeof data[key] === "object" && !Array.isArray(data[key])) {
+//         processObject(data[key], currentKey);
+//       } else {
+//         if (key !== "_id") {
+//           final[currentKey] = data[key];
+//         }
+//       }
+//     });
+//   };
+
+//   processObject(obj);
+
+//   return final;
+// };
 
 const validatePassword = (password) => {
   // var regex = /^.*(?=.{8,})(?=.*[a-zA-Z])(?=.*[!@#$%^&*()_+{}:"<>?<>]).*$/; // it nhat 8 ki tu, 1 in hoa, 1 ki tu dac biet
@@ -117,6 +159,7 @@ const validateRequiredFields = (data) => {
 };
 
 module.exports = {
+  isValidObjectId,
   convertToObjectIdMongodb,
   getInfoData,
   getSelectData,

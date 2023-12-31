@@ -6,7 +6,7 @@ const {
 const PORT = port;
 
 const server = app.listen(PORT, () => {
-  console.log(`WSV eCommerce start with PORT: ${PORT}`);
+  console.log(`API start: http://localhost:${PORT}/`);
   console.log(`Documentation: http://localhost:${PORT}/documentations`);
 });
 

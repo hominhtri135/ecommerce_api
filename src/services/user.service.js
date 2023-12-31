@@ -3,14 +3,13 @@
 const userModel = require("~/models/user.model");
 
 const findByEmail = async ({ email, select = {} }) => {
-  console.log("findByEmail::" + email);
   return await userModel.findOne({ email }).select(select);
 };
 
-const findByEmailorUsername = async ({ username, select = {} }) => {
+const findByUsername = async ({ username, select = {} }) => {
   return await userModel
     .findOne({
-      $or: [{ email: username }, { username }],
+      $or: [{ email: username }, { phone: username }],
     })
     .select(select)
     .lean();
@@ -18,5 +17,5 @@ const findByEmailorUsername = async ({ username, select = {} }) => {
 
 module.exports = {
   findByEmail,
-  findByEmailorUsername,
+  findByUsername,
 };

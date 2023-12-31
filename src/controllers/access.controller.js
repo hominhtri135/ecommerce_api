@@ -29,10 +29,10 @@ class AccessController {
     }).send(res);
   };
 
-  loginSocialMedia = async (req, res, next) => {
+  loginWithGoogle = async (req, res, next) => {
     new SuccessResponse({
-      message: "Login Social Media success!",
-      metadata: await AccessService.loginSocialMedia(req.body),
+      message: "Login Google Success!",
+      metadata: await AccessService.loginWithGoogle(req.body.idToken),
     }).send(res);
   };
 
@@ -44,13 +44,6 @@ class AccessController {
       // options: {
       //   limit: 10,
       // },
-    }).send(res);
-  };
-
-  signUpSocialMedia = async (req, res, next) => {
-    new CREATED({
-      message: "Regiserted Social Media OK!",
-      metadata: await AccessService.signUpSocialMedia(req.body),
     }).send(res);
   };
 

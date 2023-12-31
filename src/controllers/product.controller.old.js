@@ -7,7 +7,10 @@ class ProductController {
   createProduct = async (req, res, next) => {
     new SuccessResponse({
       message: "Create New Product Success",
-      metadata: await ProductFactory.createProduct(req.body),
+      metadata: await ProductFactory.createProduct(req.body.product_type, {
+        ...req.body,
+        product_shop: req.user.userId,
+      }),
     }).send(res);
   };
 
@@ -15,28 +18,34 @@ class ProductController {
   updateProduct = async (req, res, next) => {
     new SuccessResponse({
       message: "Update Product Success",
-      metadata: await ProductFactory.updateProductBySlugOrId(
-        req.params.product_slug_or_id,
-        req.body
+      metadata: await ProductFactory.updateProductById(
+        req.body.product_type,
+        req.params.product_id,
+        {
+          ...req.body,
+          product_shop: req.user.userId,
+        }
       ),
     }).send(res);
   };
 
-  draftProduct = async (req, res, next) => {
-    new SuccessResponse({
-      message: "Draft Product Success",
-      metadata: await ProductFactory.draftProduct(
-        req.params.product_slug_or_id
-      ),
-    }).send(res);
-  };
-
-  publishProduct = async (req, res, next) => {
+  publishProductByShop = async (req, res, next) => {
     new SuccessResponse({
       message: "Publish Product Success",
-      metadata: await ProductFactory.publishProduct(
-        req.params.product_slug_or_id
-      ),
+      metadata: await ProductFactory.publishProduct({
+        product_shop: req.user.userId,
+        product_id: req.params.id,
+      }),
+    }).send(res);
+  };
+
+  unPublishProductByShop = async (req, res, next) => {
+    new SuccessResponse({
+      message: "unPublish Product Success",
+      metadata: await ProductFactory.unPublishProduct({
+        product_shop: req.user.userId,
+        product_id: req.params.id,
+      }),
     }).send(res);
   };
 
@@ -47,31 +56,28 @@ class ProductController {
    * @param {Number} skip
    * @return {JSON}
    */
-  getAllDrafts = async (req, res, next) => {
+  getAllDraftsForShop = async (req, res, next) => {
     new SuccessResponse({
       message: "Get list Draft success",
-      metadata: await ProductFactory.findAllDraft(req.query),
+      metadata: await ProductFactory.findAllDraft({
+        product_shop: req.user.userId,
+      }),
     }).send(res);
   };
 
-  getAllPublish = async (req, res, next) => {
+  getAllPublishForShop = async (req, res, next) => {
     new SuccessResponse({
       message: "Get list Publish success",
-      metadata: await ProductFactory.findAllPublish(req.query),
-    }).send(res);
-  };
-
-  getAllProductsAdmin = async (req, res, next) => {
-    new SuccessResponse({
-      message: "Get list all admin success",
-      metadata: await ProductFactory.getAllProductsAdmin(req.query),
+      metadata: await ProductFactory.findAllPublish({
+        product_shop: req.user.userId,
+      }),
     }).send(res);
   };
 
   getListSearchProduct = async (req, res, next) => {
     new SuccessResponse({
       message: "Get list Search success",
-      metadata: await ProductFactory.searchProducts(req.params.keySearch),
+      metadata: await ProductFactory.searchProducts(req.params),
     }).send(res);
   };
 
@@ -85,18 +91,8 @@ class ProductController {
   findProduct = async (req, res, next) => {
     new SuccessResponse({
       message: "Get Find Product success",
-      metadata: await ProductFactory.findProductBySlugOrId(
-        req.params.product_slug_or_id
-      ),
-    }).send(res);
-  };
-
-  findProductByCategoryId = async (req, res, next) => {
-    new SuccessResponse({
-      message: "Get Find Product Category success",
-      metadata: await ProductFactory.findProductByCategoryId({
-        ...req.query,
-        category_id: req.params.category_id,
+      metadata: await ProductFactory.findProductById({
+        product_id: req.params.product_id,
       }),
     }).send(res);
   };
